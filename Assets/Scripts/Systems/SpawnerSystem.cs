@@ -2,26 +2,40 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
-using UnityEngine;
+using Unity.Mathematics;
+using Random = Unity.Mathematics.Random;
 
 [BurstCompile]
-public partial struct SpawnerSystem : ISystem {
-
+public partial struct SpawnerSystem : ISystem
+{
     public void OnUpdate(ref SystemState state)
     {
-        RefRW<SpawnCoordinatesComponent> spawnCoordinatesComponent = SystemAPI.GetSingletonRW<SpawnCoordinatesComponent>();
+        SpawnCoordinatesComponent spawnCoordinatesComponent =
+            SystemAPI.GetSingletonRW<SpawnCoordinatesComponent>().ValueRO;
+        
         RefRW<SpawnerComponent> spawner = SystemAPI.GetSingletonRW<SpawnerComponent>();
-
-        if (spawnCoordinatesComponent.ValueRO.IsNeedToSpawnEntities == 1)
+        bool isTimeValid = SystemAPI.Time.ElapsedTime >
+                                  spawner.ValueRO.PreviousSpawnTime + spawner.ValueRO.SpawnInterval;
+        
+        if (spawnCoordinatesComponent.IsNeedToSpawnEntities == 1 && isTimeValid)
         {
+
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.TempJob);
             Entity entity = ecb.Instantiate(spawner.ValueRO.Prefab);
-            ecb.AddComponent(entity, new RigidbodyComponent());
-            ecb.SetComponent(entity, LocalTransform.FromPosition(spawnCoordinatesComponent.ValueRO.Coordinates));
             
+            Random rnd = new Random((uint) UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+            ecb.AddComponent(entity, new RigidbodyComponent
+            {
+                Velocity = new float3(rnd.NextFloat(-3.0f, 3.0f), rnd.NextFloat(3.0f, 10.0f), rnd.NextFloat(-3.0f, 3.0f))
+            });
+
+            ecb.SetComponent(entity, LocalTransform.FromPosition(spawnCoordinatesComponent.Coordinates));
+
+            spawner.ValueRW.PreviousSpawnTime = SystemAPI.Time.ElapsedTime;
+            
+            state.Dependency.Complete();
             ecb.Playback(state.EntityManager);
             ecb.Dispose();
         }
-        
     }
 }
