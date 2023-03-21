@@ -6,6 +6,6 @@ using Unity.Mathematics;
 public struct RigidbodyComponent : IComponentData
 {
     public float3 Velocity;
-    public quaternion Rotation;
+    public float3 Torque;
 }
 
