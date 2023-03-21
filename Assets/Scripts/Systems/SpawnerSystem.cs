@@ -24,9 +24,13 @@ public partial struct SpawnerSystem : ISystem
             Entity entity = ecb.Instantiate(spawner.ValueRO.Prefab);
             
             Random rnd = new Random((uint) UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+            float3 initialVelocity = new float3(rnd.NextFloat(-3.0f, 3.0f), rnd.NextFloat(3.0f, 10.0f),
+                rnd.NextFloat(-3.0f, 3.0f));
+            
             ecb.AddComponent(entity, new RigidbodyComponent
             {
-                Velocity = new float3(rnd.NextFloat(-3.0f, 3.0f), rnd.NextFloat(3.0f, 10.0f), rnd.NextFloat(-3.0f, 3.0f))
+                Velocity = initialVelocity,
+                Rotation = quaternion.Euler(initialVelocity)
             });
 
             ecb.SetComponent(entity, LocalTransform.FromPosition(spawnCoordinatesComponent.Coordinates));
